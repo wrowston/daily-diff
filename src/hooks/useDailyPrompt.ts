@@ -28,11 +28,17 @@ interface UseDailyPromptReturn {
   refetch: () => Promise<void>;
 }
 
-// Initialize Supabase client
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+// Initialize Supabase client with proper error handling
+const getSupabaseClient = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    throw new Error('Missing Supabase configuration. Please check your environment variables.');
+  }
+  
+  return createClient(supabaseUrl, supabaseKey);
+};
 
 export function useDailyPrompt(): UseDailyPromptReturn {
   const { getToken, isLoaded, userId } = useAuth();
@@ -58,7 +64,8 @@ export function useDailyPrompt(): UseDailyPromptReturn {
         throw new Error('Failed to get authentication token');
       }
 
-      // Call the Supabase Edge Function
+      // Get Supabase client and call the Edge Function
+      const supabase = getSupabaseClient();
       const { data, error: functionError } = await supabase.functions.invoke(
         'get-journal-prompt',
         {

@@ -55,6 +55,8 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
   
   const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isMountedRef = useRef<boolean>(true);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
   
   const MAX_CHARACTERS = 1000;
 
@@ -69,21 +71,38 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
 
   // Save journal entry
   const saveJournalEntry = useCallback(async (content: string) => {
-    if (!content.trim()) return;
+    if (!content.trim() || !isMountedRef.current) return;
     
     setIsLoading(true);
     try {
       if (onSave) {
         await onSave(content, selectedMood, selectedTags);
       }
-      setLastSaved(new Date());
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 2000);
+      
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setLastSaved(new Date());
+        setShowSuccess(true);
+        
+        // Clear any existing success timeout
+        if (successTimeoutRef.current) {
+          clearTimeout(successTimeoutRef.current);
+        }
+        
+        // Set new timeout with proper cleanup
+        successTimeoutRef.current = setTimeout(() => {
+          if (isMountedRef.current) {
+            setShowSuccess(false);
+          }
+        }, 2000);
+      }
     } catch (error) {
       console.error('Failed to save journal entry:', error);
       // You could add error state here
     } finally {
-      setIsLoading(false);
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   }, [onSave, selectedMood, selectedTags]);
 
@@ -110,19 +129,19 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
   };
 
   // Get tag suggestions based on content
-  const updateTagSuggestions = useCallback(async () => {
-    if (content.length > 50) { // Only suggest tags if there's substantial content
+  const updateTagSuggestions = useCallback(async (currentContent: string, currentSelectedTags: string[]) => {
+    if (currentContent.length > 50) { // Only suggest tags if there's substantial content
       setIsLoadingTags(true);
       try {
-        const suggestions = await getSuggestedTags(content);
-        setSuggestedTags(suggestions.filter(tag => !selectedTags.includes(tag)));
+        const suggestions = await getSuggestedTags(currentContent);
+        setSuggestedTags(suggestions.filter(tag => !currentSelectedTags.includes(tag)));
       } catch (error) {
         console.error('Failed to get tag suggestions:', error);
       } finally {
         setIsLoadingTags(false);
       }
     }
-  }, [content, selectedTags]);
+  }, []);
 
   // Toggle tag selection
   const toggleTag = (tag: string) => {
@@ -140,16 +159,23 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
 
   useEffect(() => {
     const debounceTimeout = setTimeout(() => {
-      updateTagSuggestions();
+      updateTagSuggestions(content, selectedTags);
     }, 1000);
 
     return () => clearTimeout(debounceTimeout);
-  }, [updateTagSuggestions]);
+  }, [content, selectedTags, updateTagSuggestions]);
 
   useEffect(() => {
     return () => {
+      // Mark component as unmounted to prevent state updates
+      isMountedRef.current = false;
+      
+      // Clear all timeouts
       if (autosaveTimeoutRef.current) {
         clearTimeout(autosaveTimeoutRef.current);
+      }
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
       }
     };
   }, []);
