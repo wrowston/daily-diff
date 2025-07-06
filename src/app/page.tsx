@@ -1,5 +1,6 @@
 'use client';
 import React from 'react';
+import Link from 'next/link';
 
 export default function HomePage() {
   return (
@@ -14,9 +15,12 @@ export default function HomePage() {
           <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed font-light">
             Stay focused, reflect clearly, and track your dev journey—one daily prompt at a time.
           </p>
-          <button className="bg-blue-900 text-white px-8 py-4 rounded-xl text-lg font-medium hover:bg-blue-800 transition-all duration-200 shadow-sm hover:shadow-md">
+          <Link 
+            href="/journal" 
+            className="inline-block bg-blue-900 text-white px-8 py-4 rounded-xl text-lg font-medium hover:bg-blue-800 transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
             Start Writing for Free
-          </button>
+          </Link>
         </div>
 
         {/* Simple Quote Preview */}
@@ -38,7 +42,7 @@ export default function HomePage() {
       </section>
 
       {/* How It Works */}
-      <section className="max-w-4xl mx-auto px-6 py-20">
+      <section id="how-it-works" className="max-w-4xl mx-auto px-6 py-20">
         <h2 className="text-3xl md:text-4xl font-medium text-gray-900 text-center mb-16">
           How it works
         </h2>
@@ -115,7 +119,7 @@ export default function HomePage() {
       </section>
 
       {/* Simple Pricing */}
-      <section className="max-w-4xl mx-auto px-6 py-20">
+      <section id="pricing" className="max-w-4xl mx-auto px-6 py-20">
         <h2 className="text-3xl md:text-4xl font-medium text-gray-900 text-center mb-16">
           Start free, upgrade when ready
         </h2>
@@ -141,17 +145,23 @@ export default function HomePage() {
         <p className="text-xl text-gray-600 mb-8 font-light">
           Join developers who are building better habits, one day at a time.
         </p>
-        <button className="bg-blue-900 text-white px-8 py-4 rounded-xl text-lg font-medium hover:bg-blue-800 transition-all duration-200 shadow-sm hover:shadow-md">
+        <Link 
+          href="/journal" 
+          className="inline-block bg-blue-900 text-white px-8 py-4 rounded-xl text-lg font-medium hover:bg-blue-800 transition-all duration-200 shadow-sm hover:shadow-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+        >
           Get your first prompt
-        </button>
+        </Link>
       </section>
 
       {/* Sticky Footer CTA */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg z-50">
         <div className="max-w-4xl mx-auto flex items-center justify-center">
-          <button className="bg-blue-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-800 transition-all duration-200 shadow-sm">
+          <Link 
+            href="/journal" 
+            className="inline-block bg-blue-900 text-white px-6 py-3 rounded-xl font-medium hover:bg-blue-800 transition-all duration-200 shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+          >
             Start writing today →
-          </button>
+          </Link>
         </div>
       </div>
 

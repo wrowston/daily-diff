@@ -1,3 +1,4 @@
+'use client';
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 
 interface JournalEditorProps {
@@ -53,7 +54,7 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
   
-  const autosaveTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const autosaveTimeoutRef = useRef<NodeJS.Timeout>();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
   const MAX_CHARACTERS = 1000;
