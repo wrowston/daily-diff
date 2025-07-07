@@ -60,16 +60,23 @@ function parseEntryContent(content: string) {
     
     if (line.startsWith('Mood: ')) {
       mood = line.replace('Mood: ', '').trim();
-    } else if (line === 'What went well today?') {
+      continue;
+    }
+    
+    if (line === 'What went well today?') {
+      // Save previous section if exists
       if (currentSection && currentContent.length > 0) {
-        // Save previous section
         if (currentSection === 'answer1') answer1 = currentContent.join('\n').trim();
         if (currentSection === 'answer2') answer2 = currentContent.join('\n').trim();
         if (currentSection === 'answer3') answer3 = currentContent.join('\n').trim();
       }
       currentSection = 'answer1';
       currentContent = [];
-    } else if (line === 'What could have gone better?') {
+      continue;
+    }
+    
+    if (line === 'What could have gone better?') {
+      // Save previous section if exists
       if (currentSection && currentContent.length > 0) {
         if (currentSection === 'answer1') answer1 = currentContent.join('\n').trim();
         if (currentSection === 'answer2') answer2 = currentContent.join('\n').trim();
@@ -77,11 +84,29 @@ function parseEntryContent(content: string) {
       }
       currentSection = 'answer2';
       currentContent = [];
-    } else if (line && !line.startsWith('Mood: ') && currentSection === '' && answer1 === '' && answer2 === '') {
-      // This might be a random prompt question
+      continue;
+    }
+    
+    // Check if this line is a question that's not one of the standard two
+    // This would be the random prompt question
+    if (line.trim() !== '' && 
+        line.endsWith('?') && 
+        line !== 'What went well today?' && 
+        line !== 'What could have gone better?' &&
+        currentSection !== '' && // Only switch if we're already in a section
+        (currentSection === 'answer2' || currentSection === 'answer1')) {
+      // Save previous section if exists
+      if (currentSection && currentContent.length > 0) {
+        if (currentSection === 'answer1') answer1 = currentContent.join('\n').trim();
+        if (currentSection === 'answer2') answer2 = currentContent.join('\n').trim();
+      }
       currentSection = 'answer3';
       currentContent = [];
-    } else if (line.trim() !== '' && currentSection) {
+      continue;
+    }
+    
+    // Add content to current section
+    if (line.trim() !== '' && currentSection) {
       currentContent.push(line);
     }
   }
