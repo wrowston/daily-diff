@@ -2,6 +2,16 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Smile, 
+  Meh, 
+  Frown, 
+  Zap, 
+  Coffee, 
+  Brain, 
+  AlertTriangle,
+  Heart
+} from 'lucide-react';
 
 interface JournalEntry {
   id: string;
@@ -24,6 +34,32 @@ interface JournalSidebarProps {
   onLoadMore: () => void;
   onEntrySelect?: (entry: JournalEntry) => void;
   selectedEntryId?: string;
+}
+
+// Helper function to get mood icon
+function getMoodIcon(mood: string) {
+  const iconProps = { className: "h-4 w-4" };
+  
+  switch (mood) {
+    case 'happy':
+      return <Smile {...iconProps} className="h-4 w-4 text-green-600" />;
+    case 'peaceful':
+      return <Heart {...iconProps} className="h-4 w-4 text-blue-500" />;
+    case 'neutral':
+      return <Meh {...iconProps} className="h-4 w-4 text-gray-500" />;
+    case 'sad':
+      return <Frown {...iconProps} className="h-4 w-4 text-blue-600" />;
+    case 'stressed':
+      return <Zap {...iconProps} className="h-4 w-4 text-red-500" />;
+    case 'tired':
+      return <Coffee {...iconProps} className="h-4 w-4 text-amber-600" />;
+    case 'thoughtful':
+      return <Brain {...iconProps} className="h-4 w-4 text-purple-600" />;
+    case 'frustrated':
+      return <AlertTriangle {...iconProps} className="h-4 w-4 text-orange-500" />;
+    default:
+      return null;
+  }
 }
 
 export function JournalSidebar({
@@ -153,15 +189,8 @@ export function JournalSidebar({
                     </div>
                     {entry.mood && (
                       <span className="text-sm">
-                        {/* Map mood values to emojis */}
-                        {entry.mood === 'happy' && '😊'}
-                        {entry.mood === 'peaceful' && '😌'}
-                        {entry.mood === 'neutral' && '😐'}
-                        {entry.mood === 'sad' && '😔'}
-                        {entry.mood === 'stressed' && '😩'}
-                        {entry.mood === 'tired' && '😴'}
-                        {entry.mood === 'thoughtful' && '🤔'}
-                        {entry.mood === 'frustrated' && '😤'}
+                        {/* Map mood values to icons */}
+                        {getMoodIcon(entry.mood)}
                       </span>
                     )}
                   </div>

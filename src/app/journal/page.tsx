@@ -6,22 +6,38 @@ import { JournalSidebar } from '@/components/JournalSidebar';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { 
+  Smile, 
+  Meh, 
+  Frown, 
+  Zap, 
+  Coffee, 
+  Brain, 
+  AlertTriangle,
+  Heart,
+  Sparkles,
+  Target,
+  Lightbulb,
+  RefreshCw,
+  CheckCircle
+} from 'lucide-react';
 
 type Mood = {
-  emoji: string;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   value: string;
+  color: string;
 };
 
 const MOODS: Mood[] = [
-  { emoji: '😊', label: 'Happy', value: 'happy' },
-  { emoji: '😌', label: 'Peaceful', value: 'peaceful' },
-  { emoji: '😐', label: 'Neutral', value: 'neutral' },
-  { emoji: '😔', label: 'Sad', value: 'sad' },
-  { emoji: '😩', label: 'Stressed', value: 'stressed' },
-  { emoji: '😴', label: 'Tired', value: 'tired' },
-  { emoji: '🤔', label: 'Thoughtful', value: 'thoughtful' },
-  { emoji: '😤', label: 'Frustrated', value: 'frustrated' },
+  { icon: Smile, label: 'Happy', value: 'happy', color: 'text-green-600' },
+  { icon: Heart, label: 'Peaceful', value: 'peaceful', color: 'text-blue-500' },
+  { icon: Meh, label: 'Neutral', value: 'neutral', color: 'text-gray-500' },
+  { icon: Frown, label: 'Sad', value: 'sad', color: 'text-blue-600' },
+  { icon: Zap, label: 'Stressed', value: 'stressed', color: 'text-red-500' },
+  { icon: Coffee, label: 'Tired', value: 'tired', color: 'text-amber-600' },
+  { icon: Brain, label: 'Thoughtful', value: 'thoughtful', color: 'text-purple-600' },
+  { icon: AlertTriangle, label: 'Frustrated', value: 'frustrated', color: 'text-orange-500' },
 ];
 
 interface JournalEntry {
@@ -42,6 +58,15 @@ interface SaveJournalEntryData {
   content: string;
   mood?: string;
   tags?: string[];
+}
+
+// Helper function to get mood icon component
+function getMoodIcon(moodValue: string, className: string = "h-4 w-4") {
+  const mood = MOODS.find(m => m.value === moodValue);
+  if (!mood) return null;
+  
+  const IconComponent = mood.icon;
+  return <IconComponent className={`${className} ${mood.color}`} />;
 }
 
 // Helper function to parse content back into structured format
@@ -159,7 +184,7 @@ export default function JournalPage() {
       // Find mood value from emoji
       let moodValue = selectedEntry.mood || '';
       if (parsed.mood && !moodValue) {
-        const foundMood = MOODS.find(m => parsed.mood.includes(m.emoji));
+        const foundMood = MOODS.find(m => parsed.mood.includes(m.value));
         moodValue = foundMood?.value || '';
       }
       
@@ -199,7 +224,7 @@ export default function JournalPage() {
       // Add mood if selected
       if (selectedMood) {
         const selectedMoodData = MOODS.find(m => m.value === selectedMood);
-        content += `Mood: ${selectedMoodData?.emoji || selectedMood}\n\n`;
+        content += `Mood: ${selectedMoodData?.label || selectedMood}\n\n`;
       }
 
       // Add Question 1
@@ -338,32 +363,37 @@ export default function JournalPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="text-2xl">😊</span>
+                    <Heart className="h-5 w-5 text-primary" />
                     How are you feeling today?
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
                   <div className="flex flex-wrap gap-3">
-                    {MOODS.map((mood) => (
-                      <button
-                        key={mood.value}
-                        type="button"
-                        onClick={() => handleMoodChange(mood.value)}
-                        className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                          selectedMood === mood.value
-                            ? 'bg-primary text-primary-foreground shadow-md scale-105'
-                            : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:scale-102'
-                        }`}
-                        title={`Select ${mood.label} mood`}
-                      >
-                        <span className="text-lg">{mood.emoji}</span>
-                        <span>{mood.label}</span>
-                      </button>
-                    ))}
+                    {MOODS.map((mood) => {
+                      const IconComponent = mood.icon;
+                      return (
+                        <button
+                          key={mood.value}
+                          type="button"
+                          onClick={() => handleMoodChange(mood.value)}
+                          className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                            selectedMood === mood.value
+                              ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:scale-102'
+                          }`}
+                          title={`Select ${mood.label} mood`}
+                        >
+                          <IconComponent className={`h-4 w-4 ${selectedMood === mood.value ? 'text-white' : mood.color}`} />
+                          <span>{mood.label}</span>
+                        </button>
+                      );
+                    })}
                   </div>
                   {selectedMood && (
-                    <div className="mt-3 text-sm text-muted-foreground">
-                      Current mood: {MOODS.find(m => m.value === selectedMood)?.emoji} {MOODS.find(m => m.value === selectedMood)?.label}
+                    <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2">
+                      <span>Current mood:</span>
+                      {getMoodIcon(selectedMood)}
+                      <span>{MOODS.find(m => m.value === selectedMood)?.label}</span>
                     </div>
                   )}
                 </CardContent>
@@ -373,7 +403,7 @@ export default function JournalPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="text-2xl">✨</span>
+                    <Sparkles className="h-5 w-5 text-yellow-500" />
                     What went well today?
                   </CardTitle>
                 </CardHeader>
@@ -396,7 +426,7 @@ export default function JournalPage() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <span className="text-2xl">🎯</span>
+                    <Target className="h-5 w-5 text-blue-500" />
                     What could have gone better?
                   </CardTitle>
                 </CardHeader>
@@ -420,7 +450,7 @@ export default function JournalPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center justify-between">
                     <div className="flex items-center gap-2">
-                      <span className="text-2xl">💭</span>
+                      <Lightbulb className="h-5 w-5 text-purple-500" />
                       {isEditing ? 'Original Prompt' : 'Random Reflection'}
                     </div>
                     {!isEditing && (
@@ -431,9 +461,7 @@ export default function JournalPage() {
                         disabled={promptLoading}
                         className="text-xs"
                       >
-                        <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
+                        <RefreshCw className="h-3 w-3 mr-1" />
                         New Prompt
                       </Button>
                     )}
@@ -491,9 +519,7 @@ export default function JournalPage() {
                     </>
                   ) : (
                     <>
-                      <svg className="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
+                      <CheckCircle className="h-4 w-4 mr-2" />
                       {isEditing ? 'Update Entry' : 'Save Journal Entry'}
                     </>
                   )}
@@ -516,9 +542,7 @@ export default function JournalPage() {
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg">
               <div className="flex">
                 <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                  </svg>
+                  <AlertTriangle className="h-5 w-5 text-red-400" />
                 </div>
                 <div className="ml-3">
                   <h3 className="text-sm font-medium text-red-800">
@@ -535,4 +559,4 @@ export default function JournalPage() {
       </div>
     </div>
   );
-} 
+}
