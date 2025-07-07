@@ -198,25 +198,40 @@ export function JournalEditor({ initialContent = '', onSave, isExternalLoading =
         {/* Mood Selector */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-3">
-            How are you feeling?
+            How are you feeling today? <span className="text-red-500">*</span>
+            <span className="text-xs text-gray-500 ml-2">(Select your current mood)</span>
           </label>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {MOODS.map((mood) => (
               <button
                 key={mood.value}
                 onClick={() => setSelectedMood(selectedMood === mood.value ? '' : mood.value)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-colors ${
+                className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
                   selectedMood === mood.value
-                    ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
-                    : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
+                    ? 'bg-blue-100 text-blue-800 border-2 border-blue-300 shadow-md scale-105'
+                    : 'bg-gray-50 text-gray-700 border-2 border-gray-200 hover:bg-gray-100 hover:border-gray-300 hover:scale-102'
                 }`}
-                title={mood.label}
+                title={`Select ${mood.label} mood`}
               >
-                <span className="text-lg">{mood.emoji}</span>
-                <span className="hidden sm:inline">{mood.label}</span>
+                <span className="text-xl">{mood.emoji}</span>
+                <span className="font-medium">{mood.label}</span>
               </button>
             ))}
           </div>
+          {selectedMood && (
+            <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-700">
+                <span className="font-medium">Mood selected:</span> {MOODS.find(m => m.value === selectedMood)?.emoji} {MOODS.find(m => m.value === selectedMood)?.label}
+              </p>
+            </div>
+          )}
+          {!selectedMood && content.trim() && (
+            <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <p className="text-sm text-amber-700">
+                💡 <span className="font-medium">Tip:</span> Adding your mood helps track your emotional patterns over time
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Main Text Editor */}

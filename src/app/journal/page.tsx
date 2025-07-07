@@ -40,14 +40,15 @@ export default function JournalPage() {
 
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
-  const handleSaveEntry = async (content: string): Promise<void> => {
+  const handleSaveEntry = async (content: string, mood?: string): Promise<void> => {
     try {
       // Create a SaveJournalEntryData object with required fields
       const entryData: SaveJournalEntryData = {
         date: new Date().toISOString().split('T')[0], // Use today's date
         prompt: 'What are you reflecting on today?', // Default prompt
         content,
-        // TODO: Add mood and tags support when needed
+        mood, // Pass the mood from the editor
+        // TODO: Add tags support when needed
       };
       
       await saveEntry(entryData);
@@ -71,6 +72,11 @@ export default function JournalPage() {
   // Get the initial content for the editor
   const initialContent = useMemo(() => {
     return selectedEntry?.content || '';
+  }, [selectedEntry]);
+
+  // Get the initial mood for the editor
+  const initialMood = useMemo(() => {
+    return selectedEntry?.mood || '';
   }, [selectedEntry]);
 
   return (
@@ -116,6 +122,7 @@ export default function JournalPage() {
                 onSave={handleSaveEntry}
                 loading={loading}
                 initialContent={initialContent}
+                initialMood={initialMood}
                 key={selectedEntry?.id || 'new'} // Force re-render when switching entries
               />
             </div>
