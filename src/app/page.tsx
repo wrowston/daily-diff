@@ -3,6 +3,7 @@ import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
+import { PricingTable } from '@clerk/nextjs';
 
 export default function HomePage() {
   return (
@@ -143,24 +144,7 @@ export default function HomePage() {
         <h2 className="text-3xl md:text-4xl font-medium text-foreground text-center mb-16">
           Start free, upgrade when ready
         </h2>
-        
-        <div className="max-w-md mx-auto">
-          <Card>
-            <CardContent className="pt-6">
-              <div className="text-center space-y-6">
-                <div>
-                  <div className="text-sm text-muted-foreground mb-2">Free forever</div>
-                  <div className="text-lg text-foreground">Daily prompts, weekly summaries, 7-day history</div>
-                </div>
-                
-                <div className="border-t pt-6">
-                  <div className="text-sm text-muted-foreground mb-2">Pro • $5/month</div>
-                  <div className="text-lg text-foreground">Full archive, search, and email delivery</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <PricingTable />
       </section>
 
       {/* Simple CTA Section */}

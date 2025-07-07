@@ -24,6 +24,7 @@ interface SaveJournalEntryData {
 
 interface UseJournalEntriesReturn {
   saveEntry: (data: SaveJournalEntryData) => Promise<JournalEntry>;
+  updateEntry: (id: string, data: SaveJournalEntryData) => Promise<JournalEntry>;
   entries: JournalEntry[];
   fetchEntries: () => Promise<void>;
   loadMore: () => Promise<void>;
@@ -108,6 +109,68 @@ export function useJournalEntries(): UseJournalEntriesReturn {
     }
   }, [userId, getToken]);
 
+  const updateEntry = useCallback(async (id: string, data: SaveJournalEntryData): Promise<JournalEntry> => {
+    if (!userId) {
+      throw new Error('User not authenticated');
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      // Get the JWT token from Clerk and create authenticated Supabase client
+      const token = await getToken({ template: 'supabase' });
+      const supabase = await supabaseClient(token);
+      
+      // Debug: Log user info
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Attempting to update entry for user:', userId);
+      }
+      
+      // Update the journal entry in the database
+      const { data: updatedEntry, error: updateError } = await supabase
+        .from('journal_entries')
+        .update({
+          date: data.date,
+          prompt: data.prompt,
+          content: data.content,
+          mood: data.mood,
+          tags: data.tags,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (updateError) {
+        console.error('Supabase update error:', updateError);
+        console.error('Update data:', {
+          user_id: userId,
+          date: data.date,
+          prompt: data.prompt,
+          content: data.content.substring(0, 50) + '...',
+        });
+        throw new Error(`Failed to update journal entry: ${updateError.message}`);
+      }
+
+      if (!updatedEntry) {
+        throw new Error('No journal entry returned after update');
+      }
+
+      // Update the entries list
+      setEntries(prev => prev.map(entry => entry.id === id ? updatedEntry as JournalEntry : entry));
+
+      return updatedEntry as JournalEntry;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred while updating';
+      setError(errorMessage);
+      console.error('Error updating journal entry:', err);
+      throw err;
+    } finally {
+      setLoading(false);
+    }
+  }, [userId, getToken]);
+
   const fetchEntries = useCallback(async (page: number = 0, append: boolean = false) => {
     if (!userId) {
       setError('User not authenticated');
@@ -184,6 +247,7 @@ export function useJournalEntries(): UseJournalEntriesReturn {
 
   return {
     saveEntry,
+    updateEntry,
     entries,
     fetchEntries: () => fetchEntries(0, false),
     loadMore,

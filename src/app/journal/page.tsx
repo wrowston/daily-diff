@@ -1,5 +1,5 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
 import { SimpleJournalEditor } from '@/components/SimpleJournalEditor';
 import { JournalSidebar } from '@/components/JournalSidebar';
@@ -30,6 +30,7 @@ interface SaveJournalEntryData {
 export default function JournalPage() {
   const {
     saveEntry,
+    updateEntry,
     entries,
     loadMore,
     hasMore,
@@ -40,26 +41,45 @@ export default function JournalPage() {
 
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
 
-  const handleSaveEntry = async (content: string, mood?: string): Promise<void> => {
-    try {
-      // Create a SaveJournalEntryData object with required fields
-      const entryData: SaveJournalEntryData = {
-        date: new Date().toISOString().split('T')[0], // Use today's date
-        prompt: 'What are you reflecting on today?', // Default prompt
-        content,
-        mood, // Pass the mood from the editor
-        // TODO: Add tags support when needed
-      };
-      
-      await saveEntry(entryData);
-      
-      // Clear any selected entry after saving a new one
-      setSelectedEntry(null);
-    } catch (error) {
-      console.error('Failed to save journal entry:', error);
-      throw error;
-    }
-  };
+  const handleSaveEntry = useCallback(
+    async (content: string, mood?: string, prompt?: string) => {
+      try {
+        if (selectedEntry) {
+          // Update existing entry
+          const updateData: SaveJournalEntryData = {
+            date: selectedEntry.date, // Keep the original date
+            prompt: selectedEntry.prompt, // Keep the original prompt  
+            content: content.trim(),
+            mood,
+            tags: selectedEntry.tags, // Keep the original tags
+          };
+          
+          await updateEntry(selectedEntry.id, updateData);
+          // Stay on this entry after updating
+        } else {
+          // Create new entry
+          const newEntryData: SaveJournalEntryData = {
+            content: content.trim(),
+            mood,
+            prompt: prompt || '', // Use the provided prompt or empty string
+            date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+            tags: [],
+          };
+          
+          const savedEntry = await saveEntry(newEntryData);
+          
+          if (savedEntry) {
+            // After saving, immediately select this new entry to show it in the sidebar
+            setSelectedEntry(savedEntry);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to save journal entry:', error);
+        throw error; // Re-throw to let the editor handle the error display
+      }
+    },
+    [selectedEntry, saveEntry, updateEntry]
+  );
 
   const handleEntrySelect = (entry: JournalEntry) => {
     setSelectedEntry(entry);

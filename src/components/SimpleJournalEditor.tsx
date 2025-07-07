@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
+import { useRandomPrompt } from '@/hooks/useRandomPrompt';
 
 type Mood = {
   emoji: string;
@@ -22,7 +23,7 @@ const MOODS: Mood[] = [
 ];
 
 interface SimpleJournalEditorProps {
-  onSave: (content: string, mood?: string) => Promise<void>;
+  onSave: (content: string, mood?: string, prompt?: string) => Promise<void>;
   loading?: boolean;
   initialContent?: string;
   initialMood?: string;
@@ -42,6 +43,10 @@ export function SimpleJournalEditor({
   const [selectedMood, setSelectedMood] = useState(initialMood);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+
+  // Only fetch random prompt for new entries (when no initialContent)
+  const { prompt, loading: promptLoading, fetchNewPrompt } = useRandomPrompt();
+  const isNewEntry = !initialContent;
 
   // Update content when initialContent changes (e.g., when selecting a different entry)
   useEffect(() => {
@@ -70,9 +75,18 @@ export function SimpleJournalEditor({
 
     setIsSubmitting(true);
     try {
-      await onSave(content, selectedMood);
-      setContent(''); // Clear the textarea after successful save
-      setSelectedMood(''); // Clear the mood after successful save
+      // Pass the current prompt when saving (for new entries)
+      const currentPrompt = isNewEntry && prompt ? prompt.prompt : undefined;
+      await onSave(content, selectedMood, currentPrompt);
+      
+      // Only clear the form if we're creating a new entry (no initialContent)
+      // When editing, keep the content so user can continue editing
+      if (!initialContent) {
+        setContent(''); // Clear the textarea after successful save
+        setSelectedMood(''); // Clear the mood after successful save
+        fetchNewPrompt(); // Get a new prompt for the next entry
+      }
+      
       setShowSuccess(true);
       
       // Hide success message after 2 seconds
@@ -100,7 +114,9 @@ export function SimpleJournalEditor({
     <Card className="h-full">
       <CardContent className="p-6 h-full flex flex-col">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-foreground">Today&apos;s Entry</h2>
+          <h2 className="text-xl font-semibold text-foreground">
+            {isNewEntry ? 'New Journal Entry' : 'Edit Entry'}
+          </h2>
           {showSuccess && (
             <div className="flex items-center gap-2 text-green-600 text-sm font-medium">
               <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -110,6 +126,44 @@ export function SimpleJournalEditor({
             </div>
           )}
         </div>
+
+        {/* Random Prompt Section - Only for new entries */}
+        {isNewEntry && (
+          <div className="mb-6 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-blue-600 text-lg">💭</span>
+                  <h3 className="text-sm font-medium text-blue-900">Today&apos;s Writing Prompt</h3>
+                </div>
+                {promptLoading ? (
+                  <div className="flex items-center gap-2 text-blue-700">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-blue-600 border-t-transparent"></div>
+                    <span className="text-sm">Getting a prompt for you...</span>
+                  </div>
+                ) : prompt ? (
+                  <p className="text-blue-800 font-medium leading-relaxed">
+                    &ldquo;{prompt.prompt}&rdquo;
+                  </p>
+                ) : (
+                  <p className="text-blue-700 text-sm">No prompt available</p>
+                )}
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchNewPrompt}
+                disabled={promptLoading}
+                className="border-blue-300 text-blue-700 hover:bg-blue-100 flex-shrink-0"
+              >
+                <svg className="h-4 w-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                New
+              </Button>
+            </div>
+          </div>
+        )}
 
         {/* Mood Selector */}
         <div className="mb-4">
@@ -146,7 +200,11 @@ export function SimpleJournalEditor({
             value={content}
             onChange={handleContentChange}
             onKeyDown={handleKeyDown}
-            placeholder="What&apos;s on your mind today? Start writing your thoughts..."
+            placeholder={
+              isNewEntry && prompt 
+                ? `Reflect on: "${prompt.prompt}"`
+                : "What&apos;s on your mind today? Start writing your thoughts..."
+            }
             className="flex-1 min-h-[300px] resize-none"
           />
           
@@ -178,7 +236,7 @@ export function SimpleJournalEditor({
                   Saved!
                 </>
               ) : (
-                'Save Entry'
+                isNewEntry ? 'Save Entry' : 'Update Entry'
               )}
             </Button>
           </div>
