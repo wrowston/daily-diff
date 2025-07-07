@@ -1,150 +1,10 @@
 'use client';
-import React, { useState, useMemo } from 'react';
+import React, { useState } from 'react';
 import { useJournalEntries } from '@/hooks/useJournalEntries';
-import { useRandomPrompt } from '@/hooks/useRandomPrompt';
-import { JournalSidebar } from '@/components/JournalSidebar';
+import { JournalSidebar } from '@/components/journal/JournalSidebar';
+import { JournalForm } from '@/components/journal/JournalForm';
+import { JournalEntry, SaveJournalEntryData } from '@/components/journal/journalUtils';
 import { Button } from '@/components/ui/button';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { 
-  Smile, 
-  Meh, 
-  Frown, 
-  Zap, 
-  Coffee, 
-  Brain, 
-  AlertTriangle,
-  Heart,
-  Sparkles,
-  Target,
-  Lightbulb,
-  RefreshCw,
-  CheckCircle
-} from 'lucide-react';
-
-type Mood = {
-  icon: React.ComponentType<{ className?: string }>;
-  label: string;
-  value: string;
-  color: string;
-};
-
-const MOODS: Mood[] = [
-  { icon: Smile, label: 'Happy', value: 'happy', color: 'text-green-600' },
-  { icon: Heart, label: 'Peaceful', value: 'peaceful', color: 'text-blue-500' },
-  { icon: Meh, label: 'Neutral', value: 'neutral', color: 'text-gray-500' },
-  { icon: Frown, label: 'Sad', value: 'sad', color: 'text-blue-600' },
-  { icon: Zap, label: 'Stressed', value: 'stressed', color: 'text-red-500' },
-  { icon: Coffee, label: 'Tired', value: 'tired', color: 'text-amber-600' },
-  { icon: Brain, label: 'Thoughtful', value: 'thoughtful', color: 'text-purple-600' },
-  { icon: AlertTriangle, label: 'Frustrated', value: 'frustrated', color: 'text-orange-500' },
-];
-
-interface JournalEntry {
-  id: string;
-  user_id: string;
-  date: string;
-  prompt: string;
-  content: string;
-  mood?: string;
-  tags?: string[];
-  created_at: string;
-  updated_at: string;
-}
-
-interface SaveJournalEntryData {
-  date: string;
-  prompt: string;
-  content: string;
-  mood?: string;
-  tags?: string[];
-}
-
-// Helper function to get mood icon component
-function getMoodIcon(moodValue: string, className: string = "h-4 w-4") {
-  const mood = MOODS.find(m => m.value === moodValue);
-  if (!mood) return null;
-  
-  const IconComponent = mood.icon;
-  return <IconComponent className={`${className} ${mood.color}`} />;
-}
-
-// Helper function to parse content back into structured format
-function parseEntryContent(content: string) {
-  const lines = content.split('\n');
-  let mood = '';
-  let answer1 = '';
-  let answer2 = '';
-  let answer3 = '';
-  
-  let currentSection = '';
-  let currentContent: string[] = [];
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
-    
-    if (line.startsWith('Mood: ')) {
-      mood = line.replace('Mood: ', '').trim();
-      continue;
-    }
-    
-    if (line === 'What went well today?') {
-      // Save previous section if exists
-      if (currentSection && currentContent.length > 0) {
-        if (currentSection === 'answer1') answer1 = currentContent.join('\n').trim();
-        if (currentSection === 'answer2') answer2 = currentContent.join('\n').trim();
-        if (currentSection === 'answer3') answer3 = currentContent.join('\n').trim();
-      }
-      currentSection = 'answer1';
-      currentContent = [];
-      continue;
-    }
-    
-    if (line === 'What could have gone better?') {
-      // Save previous section if exists
-      if (currentSection && currentContent.length > 0) {
-        if (currentSection === 'answer1') answer1 = currentContent.join('\n').trim();
-        if (currentSection === 'answer2') answer2 = currentContent.join('\n').trim();
-        if (currentSection === 'answer3') answer3 = currentContent.join('\n').trim();
-      }
-      currentSection = 'answer2';
-      currentContent = [];
-      continue;
-    }
-    
-    // Check if this line is a question that's not one of the standard two
-    // This would be the random prompt question
-    if (line.trim() !== '' && 
-        line.endsWith('?') && 
-        line !== 'What went well today?' && 
-        line !== 'What could have gone better?' &&
-        currentSection !== '' && // Only switch if we're already in a section
-        (currentSection === 'answer2' || currentSection === 'answer1')) {
-      // Save previous section if exists
-      if (currentSection && currentContent.length > 0) {
-        if (currentSection === 'answer1') answer1 = currentContent.join('\n').trim();
-        if (currentSection === 'answer2') answer2 = currentContent.join('\n').trim();
-      }
-      currentSection = 'answer3';
-      currentContent = [];
-      continue;
-    }
-    
-    // Add content to current section
-    if (line.trim() !== '' && currentSection) {
-      currentContent.push(line);
-    }
-  }
-  
-  // Save the last section
-  if (currentSection && currentContent.length > 0) {
-    if (currentSection === 'answer1') answer1 = currentContent.join('\n').trim();
-    if (currentSection === 'answer2') answer2 = currentContent.join('\n').trim();
-    if (currentSection === 'answer3') answer3 = currentContent.join('\n').trim();
-  }
-  
-  return { mood, answer1, answer2, answer3 };
-}
 
 // Note: If user is not authenticated, they should be redirected to /sign-in
 // This can be handled by Clerk middleware or by checking auth state here
@@ -160,135 +20,29 @@ export default function JournalPage() {
     fetchingMore,
     error 
   } = useJournalEntries();
-  const { prompt: randomPrompt, loading: promptLoading, fetchNewPrompt } = useRandomPrompt();
 
   // Selected entry state
   const [selectedEntry, setSelectedEntry] = useState<JournalEntry | null>(null);
-
-  // Form state
-  const [selectedMood, setSelectedMood] = useState<string>('');
-  const [answer1, setAnswer1] = useState<string>('');
-  const [answer2, setAnswer2] = useState<string>('');
-  const [answer3, setAnswer3] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  const [showSuccess, setShowSuccess] = useState<boolean>(false);
 
-  // Determine if we're editing an existing entry
-  const isEditing = !!selectedEntry;
-
-  // Parse selected entry content when entry changes
-  React.useEffect(() => {
-    if (selectedEntry) {
-      const parsed = parseEntryContent(selectedEntry.content);
-      
-      // Find mood value from emoji
-      let moodValue = selectedEntry.mood || '';
-      if (parsed.mood && !moodValue) {
-        const foundMood = MOODS.find(m => parsed.mood.includes(m.value));
-        moodValue = foundMood?.value || '';
-      }
-      
-      setSelectedMood(moodValue);
-      setAnswer1(parsed.answer1);
-      setAnswer2(parsed.answer2);
-      setAnswer3(parsed.answer3);
-    }
-  }, [selectedEntry]);
-
-  const handleMoodChange = (mood: string) => {
-    const newMood = selectedMood === mood ? '' : mood;
-    setSelectedMood(newMood);
-  };
-
-  const clearForm = () => {
-    setSelectedMood('');
-    setAnswer1('');
-    setAnswer2('');
-    setAnswer3('');
-    setSelectedEntry(null);
-    fetchNewPrompt(); // Get a new random prompt for next entry
-  };
-
-  const handleSave = async () => {
-    // Validate that at least one answer is provided
-    if (!answer1.trim() && !answer2.trim() && !answer3.trim()) {
-      return;
-    }
-
+  const handleSave = async (data: SaveJournalEntryData) => {
     setIsSubmitting(true);
-    
     try {
-      // Format the content string
-      let content = '';
-      
-      // Add mood if selected
-      if (selectedMood) {
-        const selectedMoodData = MOODS.find(m => m.value === selectedMood);
-        content += `Mood: ${selectedMoodData?.label || selectedMood}\n\n`;
+      const savedEntry = await saveEntry(data);
+      if (savedEntry) {
+        // After saving, select this new entry to show it in the sidebar
+        setSelectedEntry(savedEntry);
       }
+      return savedEntry;
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
-      // Add Question 1
-      if (answer1.trim()) {
-        content += `What went well today?\n${answer1.trim()}\n\n`;
-      }
-
-      // Add Question 2
-      if (answer2.trim()) {
-        content += `What could have gone better?\n${answer2.trim()}\n\n`;
-      }
-
-      // Add Question 3 (Random Prompt)
-      if (answer3.trim()) {
-        const promptText = isEditing ? selectedEntry?.prompt : (randomPrompt?.prompt || 'Reflection');
-        content += `${promptText}\n${answer3.trim()}\n\n`;
-      }
-
-      // Remove trailing newlines
-      content = content.trim();
-
-      if (isEditing && selectedEntry) {
-        // Update existing entry
-        const updateData: SaveJournalEntryData = {
-          date: selectedEntry.date, // Keep the original date
-          prompt: selectedEntry.prompt, // Keep the original prompt  
-          content,
-          mood: selectedMood || undefined,
-          tags: selectedEntry.tags, // Keep the original tags
-        };
-        
-        await updateEntry(selectedEntry.id, updateData);
-      } else {
-        // Create new entry
-        const entryData: SaveJournalEntryData = {
-          date: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
-          prompt: randomPrompt?.prompt || 'Daily reflection',
-          content,
-          mood: selectedMood || undefined,
-          tags: [],
-        };
-
-        const savedEntry = await saveEntry(entryData);
-        
-        if (savedEntry) {
-          // After saving, select this new entry to show it in the sidebar
-          setSelectedEntry(savedEntry);
-        }
-      }
-
-      // Show success message
-      setShowSuccess(true);
-      setTimeout(() => {
-        setShowSuccess(false);
-      }, 3000);
-
-      // Only clear the form if we're creating a new entry
-      if (!isEditing) {
-        clearForm();
-      }
-
-    } catch (error) {
-      console.error('Failed to save journal entry:', error);
-      // Error is handled by the hook and displayed below
+  const handleUpdate = async (id: string, data: SaveJournalEntryData) => {
+    setIsSubmitting(true);
+    try {
+      await updateEntry(id, data);
     } finally {
       setIsSubmitting(false);
     }
@@ -299,10 +53,8 @@ export default function JournalPage() {
   };
 
   const handleNewEntry = () => {
-    clearForm();
+    setSelectedEntry(null);
   };
-
-  const isFormValid = answer1.trim() || answer2.trim() || answer3.trim();
 
   return (
     <div className="min-h-screen bg-background">
@@ -344,218 +96,16 @@ export default function JournalPage() {
               </div>
             )}
 
-            {/* Success Message */}
-            {showSuccess && (
-              <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                <div className="flex items-center gap-2 text-green-700">
-                  <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span className="font-medium">
-                    Journal entry {isEditing ? 'updated' : 'saved'} successfully!
-                  </span>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-6">
-              {/* Mood Selector */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Heart className="h-5 w-5 text-primary" />
-                    How are you feeling today?
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-3">
-                    {MOODS.map((mood) => {
-                      const IconComponent = mood.icon;
-                      return (
-                        <button
-                          key={mood.value}
-                          type="button"
-                          onClick={() => handleMoodChange(mood.value)}
-                          className={`flex items-center gap-2 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-                            selectedMood === mood.value
-                              ? 'bg-primary text-primary-foreground shadow-md scale-105'
-                              : 'bg-secondary text-secondary-foreground hover:bg-secondary/80 hover:scale-102'
-                          }`}
-                          title={`Select ${mood.label} mood`}
-                        >
-                          <IconComponent className={`h-4 w-4 ${selectedMood === mood.value ? 'text-white' : mood.color}`} />
-                          <span>{mood.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                  {selectedMood && (
-                    <div className="mt-3 text-sm text-muted-foreground flex items-center gap-2">
-                      <span>Current mood:</span>
-                      {getMoodIcon(selectedMood)}
-                      <span>{MOODS.find(m => m.value === selectedMood)?.label}</span>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Question 1: What went well */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="h-5 w-5 text-yellow-500" />
-                    What went well today?
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={answer1}
-                    onChange={(e) => setAnswer1(e.target.value)}
-                    placeholder="Reflect on the positive moments, achievements, or things you're grateful for today..."
-                    className="min-h-[120px] resize-none"
-                  />
-                  {answer1.length > 0 && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {answer1.length} characters
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Question 2: What could have gone better */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Target className="h-5 w-5 text-blue-500" />
-                    What could have gone better?
-                  </CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={answer2}
-                    onChange={(e) => setAnswer2(e.target.value)}
-                    placeholder="Think about challenges you faced, lessons learned, or areas for improvement..."
-                    className="min-h-[120px] resize-none"
-                  />
-                  {answer2.length > 0 && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {answer2.length} characters
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Question 3: Random Prompt or Existing Entry Prompt */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <Lightbulb className="h-5 w-5 text-purple-500" />
-                      {isEditing ? 'Original Prompt' : 'Random Reflection'}
-                    </div>
-                    {!isEditing && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={fetchNewPrompt}
-                        disabled={promptLoading}
-                        className="text-xs"
-                      >
-                        <RefreshCw className="h-3 w-3 mr-1" />
-                        New Prompt
-                      </Button>
-                    )}
-                  </CardTitle>
-                  {isEditing ? (
-                    <p className="text-muted-foreground font-medium">
-                      &ldquo;{selectedEntry?.prompt}&rdquo;
-                    </p>
-                  ) : promptLoading ? (
-                    <div className="flex items-center gap-2 text-muted-foreground text-sm">
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
-                      Getting a new prompt...
-                    </div>
-                  ) : randomPrompt ? (
-                    <p className="text-muted-foreground font-medium">
-                      &ldquo;{randomPrompt.prompt}&rdquo;
-                    </p>
-                  ) : (
-                    <p className="text-muted-foreground text-sm">No prompt available</p>
-                  )}
-                </CardHeader>
-                <CardContent>
-                  <Textarea
-                    value={answer3}
-                    onChange={(e) => setAnswer3(e.target.value)}
-                    placeholder={
-                      isEditing
-                        ? `Reflect on: "${selectedEntry?.prompt}"`
-                        : randomPrompt 
-                          ? `Reflect on: "${randomPrompt.prompt}"`
-                          : "Share your thoughts on today's reflection prompt..."
-                    }
-                    className="min-h-[120px] resize-none"
-                  />
-                  {answer3.length > 0 && (
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      {answer3.length} characters
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-
-              {/* Save Button */}
-              <div className="flex justify-center pt-4">
-                <Button 
-                  onClick={handleSave}
-                  disabled={!isFormValid || isSubmitting || loading}
-                  size="lg"
-                  className="min-w-[200px]"
-                >
-                  {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent mr-2"></div>
-                      {isEditing ? 'Updating...' : 'Saving Entry...'}
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      {isEditing ? 'Update Entry' : 'Save Journal Entry'}
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {/* Form validation hint */}
-              {!isFormValid && (
-                <div className="text-center text-sm text-muted-foreground">
-                  Please answer at least one question to save your journal entry.
-                </div>
-              )}
-            </div>
+            <JournalForm
+              selectedEntry={selectedEntry}
+              onSave={handleSave}
+              onUpdate={handleUpdate}
+              isSubmitting={isSubmitting}
+              loading={loading}
+              error={error}
+            />
           </div>
         </div>
-
-        {/* Error Display */}
-        {error && (
-          <div className="fixed bottom-4 right-4 max-w-md">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 shadow-lg">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <AlertTriangle className="h-5 w-5 text-red-400" />
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">
-                    Error saving entry
-                  </h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>{error}</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
     </div>
   );
