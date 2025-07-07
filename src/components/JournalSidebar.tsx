@@ -99,8 +99,8 @@ export function JournalSidebar({
   }
 
   return (
-    <Card className="h-full">
-      <CardHeader>
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex-shrink-0">
         <CardTitle className="text-lg">Past Entries</CardTitle>
         {entries.length > 0 && (
           <p className="text-sm text-muted-foreground">
@@ -108,10 +108,10 @@ export function JournalSidebar({
           </p>
         )}
       </CardHeader>
-      <CardContent className="p-0">
+      <CardContent className="flex-1 p-0 overflow-hidden">
         <div
           ref={scrollContainerRef}
-          className="max-h-[calc(100vh-200px)] overflow-y-auto px-6 pb-6"
+          className="h-full overflow-y-auto px-6 pb-6"
         >
           {error && (
             <div className="p-4 bg-red-50 border border-red-200 rounded-lg mb-4">
@@ -202,10 +202,10 @@ export function JournalSidebar({
                     {fetchingMore ? (
                       <>
                         <div className="animate-spin rounded-full h-4 w-4 border-2 border-current border-t-transparent mr-2"></div>
-                        Loading more...
+                        Loading...
                       </>
                     ) : (
-                      'Load More Entries'
+                      'Load More'
                     )}
                   </Button>
                 </div>
