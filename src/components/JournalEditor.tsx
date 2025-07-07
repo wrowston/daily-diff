@@ -4,6 +4,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 interface JournalEditorProps {
   initialContent?: string;
   onSave?: (content: string, mood?: string, tags?: string[]) => Promise<void>;
+  isExternalLoading?: boolean;
 }
 
 type Mood = {
@@ -44,7 +45,7 @@ const getSuggestedTags = async (content: string): Promise<string[]> => {
   return suggestions.slice(0, 5); // Return max 5 suggestions
 };
 
-export function JournalEditor({ initialContent = '', onSave }: JournalEditorProps) {
+export function JournalEditor({ initialContent = '', onSave, isExternalLoading = false }: JournalEditorProps) {
   const [content, setContent] = useState(initialContent);
   const [selectedMood, setSelectedMood] = useState<string>('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
@@ -54,10 +55,10 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isLoadingTags, setIsLoadingTags] = useState(false);
   
-  const autosaveTimeoutRef = useRef<NodeJS.Timeout>();
+  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isMountedRef = useRef<boolean>(true);
-  const successTimeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   const MAX_CHARACTERS = 1000;
 
@@ -186,7 +187,7 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Today's Reflection</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">Today&apos;s Reflection</h1>
           {lastSaved && (
             <p className="text-sm text-gray-500">
               Last saved: {lastSaved.toLocaleTimeString()}
@@ -224,7 +225,7 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
             ref={textareaRef}
             value={content}
             onChange={handleContentChange}
-            placeholder="What's on your mind today?"
+            placeholder="What&apos;s on your mind today?"
             className="w-full min-h-[300px] p-4 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none overflow-hidden"
             style={{ lineHeight: '1.6' }}
           />
@@ -291,14 +292,14 @@ export function JournalEditor({ initialContent = '', onSave }: JournalEditorProp
         <div className="flex items-center justify-between">
           <button
             onClick={() => saveJournalEntry(content)}
-            disabled={isLoading || !content.trim()}
+            disabled={isLoading || isExternalLoading || !content.trim()}
             className={`flex items-center gap-2 px-6 py-3 rounded-lg font-medium transition-all ${
-              isLoading || !content.trim()
+              isLoading || isExternalLoading || !content.trim()
                 ? 'bg-gray-200 text-gray-500 cursor-not-allowed'
                 : 'bg-blue-600 text-white hover:bg-blue-700 active:bg-blue-800'
             }`}
           >
-            {isLoading ? (
+            {(isLoading || isExternalLoading) ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
                 Saving...

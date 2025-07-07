@@ -1,53 +1,37 @@
-import { useState, useEffect, useCallback } from 'react';
-import { createClient } from '@supabase/supabase-js';
 import { useAuth } from '@clerk/nextjs';
+import { useState, useEffect, useCallback } from 'react';
+import { supabaseClient } from '@/utils/supabase';
 
-interface Prompt {
-  id: string;
+interface DailyPrompt {
+  id?: number;
   text: string;
   category?: string;
+  created_at?: string;
+  used_dates?: string[];
 }
 
 interface PromptMetadata {
-  total_prompts: number;
   remaining_prompts: number;
   was_reset: boolean;
-  delivered_at: string;
-}
-
-interface PromptResponse {
-  prompt: Prompt;
-  metadata: PromptMetadata;
+  total_prompts_in_rotation?: number;
 }
 
 interface UseDailyPromptReturn {
-  prompt: Prompt | null;
+  prompt: DailyPrompt | null;
   metadata: PromptMetadata | null;
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
 }
 
-// Initialize Supabase client with proper error handling
-const getSupabaseClient = () => {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
-  if (!supabaseUrl || !supabaseKey) {
-    throw new Error('Missing Supabase configuration. Please check your environment variables.');
-  }
-  
-  return createClient(supabaseUrl, supabaseKey);
-};
-
 export function useDailyPrompt(): UseDailyPromptReturn {
-  const { getToken, isLoaded, userId } = useAuth();
-  const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const { getToken, userId, isLoaded } = useAuth();
+  const [prompt, setPrompt] = useState<DailyPrompt | null>(null);
   const [metadata, setMetadata] = useState<PromptMetadata | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchPrompt = useCallback(async () => {
+  const fetchDailyPrompt = useCallback(async () => {
     if (!userId) {
       setError('User not authenticated');
       return;
@@ -57,37 +41,42 @@ export function useDailyPrompt(): UseDailyPromptReturn {
     setError(null);
 
     try {
-      // Get the user's session token from Clerk for Supabase
+      // Get the JWT token from Clerk and create authenticated Supabase client
       const token = await getToken({ template: 'supabase' });
-      
-      if (!token) {
-        throw new Error('Failed to get authentication token');
+      const supabase = await supabaseClient(token);
+
+      // Call the get_daily_prompt RPC function
+      const { data, error: rpcError } = await supabase
+        .rpc('get_daily_prompt', { user_id_input: userId });
+
+      if (rpcError) {
+        console.error('Supabase RPC error:', rpcError);
+        throw new Error(`Failed to fetch daily prompt: ${rpcError.message}`);
       }
 
-      // Get Supabase client and call the Edge Function
-      const supabase = getSupabaseClient();
-      const { data, error: functionError } = await supabase.functions.invoke(
-        'get-journal-prompt',
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      if (data && data.length > 0) {
+        const result = data[0];
+        
+        // Extract prompt and metadata from the result
+        setPrompt({
+          id: result.id,
+          text: result.text,
+          category: result.category,
+          created_at: result.created_at,
+          used_dates: result.used_dates,
+        });
 
-      if (functionError) {
-        throw new Error(functionError.message || 'Failed to fetch prompt');
+        setMetadata({
+          remaining_prompts: result.remaining_prompts || 0,
+          was_reset: result.was_reset || false,
+          total_prompts_in_rotation: result.total_prompts_in_rotation || 0,
+        });
+      } else {
+        throw new Error('No daily prompt available');
       }
 
-      if (!data) {
-        throw new Error('No data returned from function');
-      }
-
-      const response: PromptResponse = data;
-      setPrompt(response.prompt);
-      setMetadata(response.metadata);
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred while fetching prompt';
       setError(errorMessage);
       console.error('Error fetching daily prompt:', err);
     } finally {
@@ -95,20 +84,18 @@ export function useDailyPrompt(): UseDailyPromptReturn {
     }
   }, [userId, getToken]);
 
-  // Fetch prompt when user is loaded and authenticated
+  // Initial fetch when user is loaded and authenticated
   useEffect(() => {
     if (isLoaded && userId) {
-      fetchPrompt();
-    } else if (isLoaded && !userId) {
-      setError('User not authenticated');
+      fetchDailyPrompt();
     }
-  }, [isLoaded, userId, fetchPrompt]);
+  }, [isLoaded, userId, fetchDailyPrompt]);
 
   return {
     prompt,
     metadata,
     loading,
     error,
-    refetch: fetchPrompt,
+    refetch: fetchDailyPrompt,
   };
 } 

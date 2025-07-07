@@ -28,9 +28,9 @@ export default function HomePage() {
         <div className="max-w-2xl mx-auto mt-20">
           <Card>
             <CardHeader>
-              <div className="text-sm text-muted-foreground mb-2 font-mono">Today's prompt</div>
+              <div className="text-sm text-muted-foreground mb-2 font-mono">Today&apos;s prompt</div>
               <CardTitle className="text-lg font-medium">
-                What's one thing you learned while coding today?
+                What&apos;s one thing you learned while coding today?
               </CardTitle>
             </CardHeader>
             <CardContent>

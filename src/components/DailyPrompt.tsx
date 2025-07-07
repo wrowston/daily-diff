@@ -66,7 +66,7 @@ export function DailyPrompt() {
         </div>
         
         <div className="text-lg text-gray-700 leading-relaxed mb-8 text-center">
-          <p className="italic">"{prompt.text}"</p>
+          <p className="italic">&ldquo;{prompt.text}&rdquo;</p>
         </div>
 
         <div className="flex justify-between items-center">
