@@ -1,11 +1,16 @@
 'use client';
 import React from 'react';
 import Link from 'next/link';
+import { SignedIn } from '@clerk/nextjs';
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { PricingTable } from '@clerk/nextjs';
+import { useSubscription } from '@/hooks/useSubscription';
+import { Crown } from 'lucide-react';
 
 export default function HomePage() {
+  const { isPro } = useSubscription();
+
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
@@ -106,12 +111,24 @@ export default function HomePage() {
 
       {/* Weekly Summary Preview */}
       <section className="max-w-4xl mx-auto px-6 py-20">
-        <h2 className="text-3xl md:text-4xl font-medium text-foreground text-center mb-16">
-          Your weekly summary
-        </h2>
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-medium text-foreground mb-4">
+            Your weekly summary
+          </h2>
+          <div className="flex items-center justify-center gap-2 text-amber-600">
+            <Crown className="h-5 w-5" />
+            <span className="text-sm font-medium">Pro Feature</span>
+          </div>
+        </div>
         
         <div className="max-w-2xl mx-auto">
-          <Card>
+          <Card className="relative overflow-hidden">
+            {/* Pro Badge */}
+            <div className="absolute top-4 right-4 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1">
+              <Crown className="h-3 w-3" />
+              Pro
+            </div>
+            
             <CardHeader>
               <div className="flex items-center gap-3">
                 <div className="w-6 h-6 bg-amber-100 rounded-full flex items-center justify-center">
@@ -134,6 +151,26 @@ export default function HomePage() {
                   when working on system architecture problems.
                 </p>
               </div>
+              
+              <SignedIn>
+                <div className="mt-6 pt-4 border-t">
+                  <Link href="/weekly-summary">
+                    <Button 
+                      variant={isPro ? "default" : "outline"}
+                      className={isPro ? "" : "text-purple-600 border-purple-200 hover:bg-purple-50"}
+                    >
+                      {isPro ? (
+                        "View Your Weekly Summary"
+                      ) : (
+                        <>
+                          <Crown className="h-4 w-4 mr-2" />
+                          Upgrade for Weekly Summaries
+                        </>
+                      )}
+                    </Button>
+                  </Link>
+                </div>
+              </SignedIn>
             </CardContent>
           </Card>
         </div>
@@ -149,32 +186,18 @@ export default function HomePage() {
 
       {/* Simple CTA Section */}
       <section className="max-w-4xl mx-auto px-6 py-20 text-center">
-        <h2 className="text-3xl md:text-4xl font-medium text-foreground mb-8">
-          Ready to start reflecting?
+        <h2 className="text-3xl font-medium text-foreground mb-8">
+          Ready to start your journey?
         </h2>
-        <p className="text-xl text-muted-foreground mb-8 font-light">
-          Join developers who are building better habits, one day at a time.
+        <p className="text-xl text-muted-foreground mb-12 max-w-2xl mx-auto">
+          Join thousands of developers who are already reflecting, learning, and growing through structured journaling.
         </p>
         <Button asChild size="lg" className="text-lg px-8 py-6 h-auto">
           <Link href="/journal">
-            Get your first prompt
+            Start Your First Entry
           </Link>
         </Button>
       </section>
-
-      {/* Sticky Footer CTA */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-t shadow-lg z-50">
-        <div className="max-w-4xl mx-auto flex items-center justify-center p-4">
-          <Button asChild>
-            <Link href="/journal">
-              Start writing today →
-            </Link>
-          </Button>
-        </div>
-      </div>
-
-      {/* Bottom padding for sticky footer */}
-      <div className="h-20"></div>
     </div>
   );
 }

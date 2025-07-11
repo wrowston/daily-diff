@@ -1,11 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useRandomPrompt } from '@/hooks/useRandomPrompt';
+import { useWeeklyEntryLimit } from '@/hooks/useWeeklyEntryLimit';
+import { useSubscription } from '@/hooks/useSubscription';
+import { UpgradeModal } from '@/components/UpgradeModal';
 import { MoodSelector, MOODS } from './MoodSelector';
 import { QuestionCard } from './QuestionCard';
 import { JournalFormActions } from './JournalFormActions';
 import { NotificationMessages } from './NotificationMessages';
 import { parseEntryContent, JournalEntry, SaveJournalEntryData } from './journalUtils';
-import { Sparkles, Target, Lightbulb, RefreshCw } from 'lucide-react';
+import { Sparkles, Target, Lightbulb, RefreshCw, Crown } from 'lucide-react';
 
 interface JournalFormProps {
   selectedEntry: JournalEntry | null;
@@ -25,6 +28,8 @@ export function JournalForm({
   error
 }: JournalFormProps) {
   const { prompt: randomPrompt, loading: promptLoading, fetchNewPrompt } = useRandomPrompt();
+  const { isPro } = useSubscription();
+  const { hasReachedLimit, currentWeekCount, maxWeeklyEntries, checkLimit } = useWeeklyEntryLimit();
 
   // Form state
   const [selectedMood, setSelectedMood] = useState<string>('');
@@ -32,6 +37,14 @@ export function JournalForm({
   const [answer2, setAnswer2] = useState<string>('');
   const [answer3, setAnswer3] = useState<string>('');
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
+  
+  // Modal states
+  const [showUpgradeModal, setShowUpgradeModal] = useState<boolean>(false);
+  const [upgradeModalContent, setUpgradeModalContent] = useState({
+    title: '',
+    description: '',
+    feature: ''
+  });
 
   // Determine if we're editing an existing entry
   const isEditing = !!selectedEntry;
@@ -63,9 +76,33 @@ export function JournalForm({
     fetchNewPrompt(); // Get a new random prompt for next entry
   };
 
+  const handleNewPrompt = () => {
+    if (!isPro) {
+      setUpgradeModalContent({
+        title: 'Unlock Prompt Variety',
+        description: 'Get access to unlimited prompt refreshes and discover new perspectives for your journaling.',
+        feature: 'prompt_refresh'
+      });
+      setShowUpgradeModal(true);
+      return;
+    }
+    fetchNewPrompt();
+  };
+
   const handleSave = async () => {
     // Validate that at least one answer is provided
     if (!answer1.trim() && !answer2.trim() && !answer3.trim()) {
+      return;
+    }
+
+    // Check weekly limit for free users on new entries
+    if (!isEditing && !isPro && hasReachedLimit) {
+      setUpgradeModalContent({
+        title: 'Weekly Entry Limit Reached',
+        description: `You've reached your weekly limit of ${maxWeeklyEntries} entries. Upgrade to Pro for unlimited journaling.`,
+        feature: 'unlimited_entries'
+      });
+      setShowUpgradeModal(true);
       return;
     }
 
@@ -120,6 +157,9 @@ export function JournalForm({
         };
 
         await onSave(entryData);
+        
+        // Refresh the limit check after successful save
+        await checkLimit();
       }
 
       // Show success message
@@ -128,52 +168,77 @@ export function JournalForm({
         setShowSuccess(false);
       }, 3000);
 
-      // Only clear the form if we're creating a new entry
+      // Clear form if not editing
       if (!isEditing) {
         clearForm();
       }
-
     } catch (error) {
-      console.error('Failed to save journal entry:', error);
-      // Error is handled by the parent component
+      console.error('Error saving journal entry:', error);
     }
   };
 
-  const isFormValid = Boolean(answer1.trim() || answer2.trim() || answer3.trim());
+  const isFormValid = answer1.trim() || answer2.trim() || answer3.trim();
+  const isDisabled = !isEditing && !isPro && hasReachedLimit;
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-2xl mx-auto space-y-6">
+      {/* Weekly Limit Warning for Free Users */}
+      {!isPro && !isEditing && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-2">
+            <Crown className="h-4 w-4 text-blue-600" />
+            <span className="font-medium text-blue-900">
+              Weekly Progress: {currentWeekCount} of {maxWeeklyEntries} entries
+            </span>
+          </div>
+          <p className="text-sm text-blue-700">
+            {hasReachedLimit ? (
+              <>You've reached your weekly limit. <button 
+                onClick={() => setShowUpgradeModal(true)}
+                className="underline font-medium hover:text-blue-800"
+              >
+                Upgrade to Pro
+              </button> for unlimited entries.</>
+            ) : (
+              <>You can create {maxWeeklyEntries - currentWeekCount} more entries this week. 
+              <button 
+                onClick={() => setShowUpgradeModal(true)}
+                className="underline font-medium hover:text-blue-800"
+              >
+                Upgrade to Pro
+              </button> for unlimited journaling.</>
+            )}
+          </p>
+        </div>
+      )}
+
       <NotificationMessages 
-        showSuccess={showSuccess} 
-        isEditing={isEditing} 
-        error={error} 
+        showSuccess={showSuccess}
+        isEditing={isEditing}
+        error={error}
       />
 
-      {/* Mood Selector */}
       <MoodSelector 
-        selectedMood={selectedMood} 
-        onMoodChange={setSelectedMood} 
+        selectedMood={selectedMood}
+        onMoodChange={setSelectedMood}
       />
 
-      {/* Question 1: What went well */}
       <QuestionCard
-        icon={<Sparkles className="h-5 w-5 text-yellow-500" />}
+        icon={<Sparkles className="h-5 w-5 text-green-500" />}
         title="What went well today?"
         value={answer1}
         onChange={setAnswer1}
-        placeholder="Reflect on the positive moments, achievements, or things you're grateful for today..."
+        placeholder="Share your wins, achievements, or positive moments..."
       />
 
-      {/* Question 2: What could have gone better */}
       <QuestionCard
-        icon={<Target className="h-5 w-5 text-blue-500" />}
+        icon={<Target className="h-5 w-5 text-orange-500" />}
         title="What could have gone better?"
         value={answer2}
         onChange={setAnswer2}
-        placeholder="Think about challenges you faced, lessons learned, or areas for improvement..."
+        placeholder="Reflect on challenges, learnings, or areas for improvement..."
       />
 
-      {/* Question 3: Random Prompt or Existing Entry Prompt */}
       <QuestionCard
         icon={<Lightbulb className="h-5 w-5 text-purple-500" />}
         title={isEditing ? 'Original Prompt' : 'Random Reflection'}
@@ -195,20 +260,28 @@ export function JournalForm({
         }
         actionButton={
           !isEditing ? {
-            label: 'New Prompt',
-            onClick: fetchNewPrompt,
+            label: isPro ? 'New Prompt' : 'New Prompt (Pro)',
+            onClick: handleNewPrompt,
             disabled: promptLoading,
-            icon: <RefreshCw className="h-3 w-3 mr-1" />
+            icon: isPro ? <RefreshCw className="h-3 w-3 mr-1" /> : <Crown className="h-3 w-3 mr-1" />
           } : undefined
         }
       />
 
       <JournalFormActions
         onSave={handleSave}
-        isFormValid={isFormValid}
+        isFormValid={Boolean(isFormValid && !isDisabled)}
         isSubmitting={isSubmitting}
         loading={loading}
         isEditing={isEditing}
+      />
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        title={upgradeModalContent.title}
+        description={upgradeModalContent.description}
+        feature={upgradeModalContent.feature}
       />
     </div>
   );

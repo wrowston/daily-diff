@@ -1,8 +1,21 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useDailyPrompt } from '../hooks/useDailyPrompt';
+import { useSubscription } from '../hooks/useSubscription';
+import { UpgradeModal } from './UpgradeModal';
+import { Crown } from 'lucide-react';
 
 export function DailyPrompt() {
   const { prompt, metadata, loading, error, refetch } = useDailyPrompt();
+  const { isPro } = useSubscription();
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+
+  const handleRefresh = () => {
+    if (!isPro) {
+      setShowUpgradeModal(true);
+      return;
+    }
+    refetch();
+  };
 
   if (loading) {
     return (
@@ -71,10 +84,21 @@ export function DailyPrompt() {
 
         <div className="flex justify-between items-center">
           <button
-            onClick={refetch}
-            className="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md transition-colors"
+            onClick={handleRefresh}
+            className={`font-medium py-2 px-4 rounded-md transition-colors flex items-center gap-2 ${
+              isPro 
+                ? 'bg-blue-600 hover:bg-blue-700 text-white' 
+                : 'bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300'
+            }`}
           >
-            Get New Prompt
+            {isPro ? (
+              <>Get New Prompt</>
+            ) : (
+              <>
+                <Crown className="h-4 w-4" />
+                Get New Prompt (Pro)
+              </>
+            )}
           </button>
           
           {metadata && (
@@ -86,6 +110,15 @@ export function DailyPrompt() {
             </div>
           )}
         </div>
+
+        {!isPro && (
+          <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+            <p className="text-sm text-blue-700">
+              <Crown className="h-4 w-4 inline mr-1" />
+              Upgrade to Pro for unlimited prompt refreshes and discover new perspectives for your journaling.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Metadata for debugging (remove in production) */}
@@ -99,6 +132,14 @@ export function DailyPrompt() {
           </details>
         </div>
       )}
+
+      <UpgradeModal
+        isOpen={showUpgradeModal}
+        onClose={() => setShowUpgradeModal(false)}
+        title="Unlock Daily Prompt Variety"
+        description="Get access to unlimited prompt refreshes and discover new perspectives for your journaling every day."
+        feature="prompt_refresh"
+      />
     </div>
   );
 } 

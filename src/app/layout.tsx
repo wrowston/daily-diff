@@ -9,6 +9,7 @@ import {
 } from '@clerk/nextjs'
 import { Geist, Geist_Mono } from 'next/font/google'
 import Link from 'next/link'
+import { NavigationMenu } from '@/components/NavigationMenu'
 import './globals.css'
 
 const geistSans = Geist({
@@ -47,17 +48,7 @@ export default function RootLayout({
                 </div>
                 
                 {/* Navigation Links */}
-                <nav className="hidden md:flex items-center space-x-8">
-                  <Link href="/#how-it-works" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                    How it Works
-                  </Link>
-                  <Link href="/#pricing" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                    Pricing
-                  </Link>
-                  <Link href="/blog" className="text-gray-600 hover:text-gray-900 font-medium transition-colors">
-                    Blog
-                  </Link>
-                </nav>
+                <NavigationMenu />
 
                 {/* Auth Buttons */}
                 <div className="flex items-center space-x-4">
@@ -77,12 +68,6 @@ export default function RootLayout({
                     </SignUpButton>
                   </SignedOut>
                   <SignedIn>
-                    <Link
-                      href="/journal"
-                      className="text-gray-600 hover:text-gray-900 font-medium transition-colors"
-                    >
-                      Journal
-                    </Link>
                     <UserButton />
                   </SignedIn>
                 </div>
